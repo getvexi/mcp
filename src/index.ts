@@ -63,49 +63,71 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "search_businesses",
       description:
-        "Search for businesses by query, location, and category. Returns Agent Business Objects (ABOs).",
+        "Search for businesses by query and location. Returns Agent Business Objects (ABOs).",
       inputSchema: {
         type: "object",
         properties: {
-          query: {
+          q: {
             type: "string",
-            description: "Business name, keyword, or free-text search query",
+            description: "Search query (business name, keyword, or free-text)",
           },
           location: {
             type: "string",
             description: "City, state, country, or geo hint (optional)",
           },
-          category: {
+          business_type: {
             type: "string",
-            description: "Business category filter (optional)",
+            description: "Business type or category filter (optional)",
           },
           limit: {
             type: "string",
             description: "Max number of results to return (optional)",
           },
+          min_completeness: {
+            type: "string",
+            description: "Minimum ABO completeness score 0-1 (optional)",
+          },
         },
       },
     },
     {
-      name: "enrich_business",
-      description:
-        "Enrich a business profile using known identifiers and return structured details.",
+      name: "get_business",
+      description: "Get a full ABO for a specific business by slug.",
       inputSchema: {
         type: "object",
         properties: {
-          businessId: {
+          slug: {
             type: "string",
-            description: "Vexi business ID when available",
-          },
-          domain: {
-            type: "string",
-            description: "Company website domain (optional)",
-          },
-          name: {
-            type: "string",
-            description: "Business name (optional)",
+            description: "Business slug identifier",
           },
         },
+        required: ["slug"],
+      },
+    },
+    {
+      name: "crawl_business",
+      description: "Queue a new business for crawling from a URL.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          url: {
+            type: "string",
+            description: "Website URL to crawl",
+          },
+          wait: {
+            type: "boolean",
+            description: "Wait for crawl to complete before returning (optional)",
+          },
+        },
+        required: ["url"],
+      },
+    },
+    {
+      name: "list_categories",
+      description: "List all available business categories.",
+      inputSchema: {
+        type: "object",
+        properties: {},
       },
     },
   ],
@@ -118,12 +140,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     if (name === "search_businesses") {
       const params = {
-        query: String(args.query ?? ""),
+        q: String(args.q ?? ""),
         location: String(args.location ?? ""),
-        category: String(args.category ?? ""),
+        business_type: String(args.business_type ?? ""),
         limit: String(args.limit ?? ""),
+        min_completeness: String(args.min_completeness ?? ""),
       };
-      const data = await vexiRequest("/businesses/search", params);
+      const data = await vexiRequest("/search", params);
       return {
         content: [
           {
@@ -134,13 +157,42 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
-    if (name === "enrich_business") {
-      const body = {
-        businessId: args.businessId,
-        domain: args.domain,
-        name: args.name,
+    if (name === "get_business") {
+      const slug = String(args.slug ?? "");
+      if (!slug) {
+        throw new Error("slug is required");
+      }
+      const data = await vexiRequest(`/business/${encodeURIComponent(slug)}`);
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(data, null, 2),
+          },
+        ],
       };
-      const data = await vexiPost("/businesses/enrich", body);
+    }
+
+    if (name === "crawl_business") {
+      const body: Record<string, unknown> = {
+        url: args.url,
+      };
+      if (args.wait !== undefined) {
+        body.wait = args.wait;
+      }
+      const data = await vexiPost("/crawl", body);
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(data, null, 2),
+          },
+        ],
+      };
+    }
+
+    if (name === "list_categories") {
+      const data = await vexiRequest("/categories");
       return {
         content: [
           {
