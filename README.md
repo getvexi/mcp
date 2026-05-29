@@ -47,6 +47,22 @@ With one call, agents can discover businesses, fetch full records, and request f
 }
 ```
 
+> **Windows users:** If `npx` doesn't work, use the `cmd` wrapper instead:
+>
+> ```json
+> {
+>   "mcpServers": {
+>     "vexi": {
+>       "command": "cmd",
+>       "args": ["/C", "npx", "-y", "@getvexi/mcp"],
+>       "env": {
+>         "VEXI_API_KEY": "vxi_live_..."
+>       }
+>     }
+>   }
+> }
+> ```
+
 1. Save the file and fully quit Claude Desktop.
 2. Relaunch Claude Desktop - the **vexi** tools should appear in your MCP tools list.
 
