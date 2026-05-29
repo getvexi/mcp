@@ -5,42 +5,47 @@ const index_js_1 = require("@modelcontextprotocol/sdk/server/index.js");
 const stdio_js_1 = require("@modelcontextprotocol/sdk/server/stdio.js");
 const types_js_1 = require("@modelcontextprotocol/sdk/types.js");
 const API_KEY = process.env.VEXI_API_KEY;
-const BASE_URL = "https://api.getvexi.dev/v1";
+const BASE_URL = "https://getvexi.dev/api/v1";
 if (!API_KEY) {
     console.error("Error: VEXI_API_KEY environment variable is required");
     process.exit(1);
 }
+console.error("VEXI_API_KEY loaded:", API_KEY ? "YES (" + API_KEY.substring(0, 8) + "...)" : "NO");
 async function vexiRequest(endpoint, params) {
-    const url = new URL(`${BASE_URL}${endpoint}`);
-    if (params) {
-        Object.entries(params).forEach(([k, v]) => {
-            if (v)
-                url.searchParams.set(k, v);
+    try {
+        const url = new URL(`${BASE_URL}${endpoint}`);
+        if (params) {
+            Object.entries(params).forEach(([k, v]) => {
+                if (v)
+                    url.searchParams.set(k, v);
+            });
+        }
+        const res = await fetch(url.toString(), {
+            headers: { Authorization: `Bearer ${API_KEY}` },
         });
+        return res.json();
     }
-    const res = await fetch(url.toString(), {
-        headers: { Authorization: `Bearer ${API_KEY}` },
-    });
-    if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Vexi API GET ${endpoint} failed (${res.status}): ${text}`);
+    catch (error) {
+        console.error("vexiRequest error:", error);
+        return { error: String(error) };
     }
-    return res.json();
 }
 async function vexiPost(endpoint, body) {
-    const res = await fetch(`${BASE_URL}${endpoint}`, {
-        method: "POST",
-        headers: {
-            Authorization: `Bearer ${API_KEY}`,
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-    });
-    if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Vexi API POST ${endpoint} failed (${res.status}): ${text}`);
+    try {
+        const res = await fetch(`${BASE_URL}${endpoint}`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${API_KEY}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+        });
+        return res.json();
     }
-    return res.json();
+    catch (error) {
+        console.error("vexiPost error:", error);
+        return { error: String(error) };
+    }
 }
 const server = new index_js_1.Server({ name: "vexi", version: "1.0.0" }, { capabilities: { tools: {} } });
 server.setRequestHandler(types_js_1.ListToolsRequestSchema, async () => ({
