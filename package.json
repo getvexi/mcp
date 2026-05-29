@@ -1,6 +1,6 @@
 {
     "name":  "@getvexi/mcp",
-    "version":  "1.0.1",
+    "version":  "1.0.3",
     "description":  "Vexi MCP Server — Structured business data for AI agents",
     "main":  "dist/index.js",
     "bin":  {

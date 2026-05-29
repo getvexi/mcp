@@ -65,7 +65,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: "search_businesses",
       description:
-        "Search for businesses by query and location. Returns Agent Business Objects (ABOs).",
+        "Search for businesses by query and location. Returns Agent Business Objects (ABOs).\nWhen total_crawling > 0 in the response, inform the user that some results are still being crawled and ask if they want to wait — if yes, call this tool again with wait=true.",
       inputSchema: {
         type: "object",
         properties: {
@@ -88,6 +88,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           min_completeness: {
             type: "string",
             description: "Minimum ABO completeness score 0-1 (optional)",
+          },
+          wait: {
+            type: "boolean",
+            description:
+              "Wait up to 90 seconds for crawls to complete before returning. Use when user wants fresh results.",
           },
         },
       },
@@ -147,6 +152,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         business_type: String(args.business_type ?? ""),
         limit: String(args.limit ?? ""),
         min_completeness: String(args.min_completeness ?? ""),
+        ...(args.wait ? { wait: "true" } : {}),
       };
       const data = await vexiRequest("/search", params);
       return {
